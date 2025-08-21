@@ -46,6 +46,7 @@ tool:
   secretName: "github-token"
   # optional; defaults to "token" if empty
   secretKey: "token"
+
   defaults:
     prBranchPrefix: remediation-
     prTitleTemplate: "[Auto-Remediation] Fix policy violations"
@@ -63,11 +64,11 @@ remediator:
     clusterNames: []
     clusterServerUrls: []
     argoAppSelector:
-      # Target all ArgoCD applications by default
-      allApps: true
-      # Alternative: target specific apps
-      # matchLabels:
-      #   environment: devtest
+      # Target only specific apps to reduce GitHub API calls
+      # allApps: true
+      # Alternative: target specific apps with violations
+      matchLabels:
+        app.kubernetes.io/part-of: remediator-testing
   remediation:
     schedule: "*/5 * * * *"
     actions:
