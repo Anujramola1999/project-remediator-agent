@@ -66,9 +66,9 @@ remediator:
     argoAppSelector:
       # Target only specific apps to reduce GitHub API calls
       # allApps: true
-      # Alternative: target specific apps with violations
-      matchLabels:
-        app.kubernetes.io/part-of: remediator-testing
+      # Use names instead of matchLabels since matchLabels isn't supported
+      names:
+        - test-violations
   remediation:
     schedule: "*/5 * * * *"
     actions:
