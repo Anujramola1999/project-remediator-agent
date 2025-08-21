@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: remediator-agent
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: remediator-agent
+    app.kubernetes.io/part-of: nirmata-platform
+    environment: test
+spec:
+  project: default
+  sources:
+    - repoURL: https://nirmata.github.io/kyverno-charts
+      chart: remediator-agent
+      targetRevision: 0.2.0-rc4
+      helm:
+        valueFiles:
+          - $values/remediator-agent/custom-values.yaml
+    - repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nirmata
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

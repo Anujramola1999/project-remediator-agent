@@ -1,0 +1,84 @@
+# Remediator Agent Configuration for DevTest Environment
+# Repository: https://github.com/nirmata/production-add-ons
+# Branch: devtest
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/nirmata/go-agent-remediator
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "remediator-agent"
+
+# LLM provider configuration for creating an LLMConfig CR
+llm:
+  enabled: true
+  provider: bedrock  # Options: bedrock, azure-openai
+  # For Bedrock
+  model: "arn:aws:bedrock:us-west-2:844333597536:application-inference-profile/cpl55iltpz6n"
+  region: "us-west-2"
+  # For Azure OpenAI
+  endpoint: ""
+  deploymentName: ""
+  # Secret configuration (for both providers)
+  secretName: ""
+  # TODO: this is not required, but we need to set it to something. Make the key optional in the secretRef.
+  secretKey: "aws_access_key_id"
+
+# ToolConfig for GitHub (used by CreateGithubPR)
+tool:
+  enabled: true
+  name: github-tool
+  type: github
+  secretName: "github-token"
+  # optional; defaults to "token" if empty
+  secretKey: "token"
+  defaults:
+    prBranchPrefix: remediation-
+    prTitleTemplate: "[Auto-Remediation] Fix policy violations"
+    commitMessageTemplate: "Auto-fix: Remediate policy violations"
+
+# Remediator CR
+remediator:
+  enabled: true
+  name: remediator-agent
+  environment:
+    localCluster: false
+    argoCD:
+      hub: true
+  target:
+    clusterNames: []
+    clusterServerUrls: []
+    argoAppSelector:
+      # Target all ArgoCD applications by default
+      allApps: true
+      # Alternative: target specific apps
+      # matchLabels:
+      #   environment: devtest
+  remediation:
+    schedule: "0 */6 * * *"
+    actions:
+      - type: CreateGithubPR
+        toolRefName: github-tool
+
+# Node selector for specific node groups (optional)
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+imagePullSecrets: []
