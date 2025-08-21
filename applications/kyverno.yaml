@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: n4k-kyverno
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: n4k-kyverno
+    app.kubernetes.io/part-of: kyverno-platform
+    environment: test
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
+    path: charts/kyverno
+    targetRevision: HEAD
+    helm:
+      values: |
+        crds:
+          install: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nirmata
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

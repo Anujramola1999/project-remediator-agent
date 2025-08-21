@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reports-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: reports-server
+    app.kubernetes.io/part-of: kyverno-platform
+    environment: test
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
+    path: charts/reports-server
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nirmata
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
