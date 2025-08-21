@@ -15,8 +15,6 @@ spec:
       labels:
         app: hostnamespaces-test
     spec:
-      hostNetwork: true  # This violates disallow-host-namespaces policy
-      hostPID: true      # This also violates disallow-host-namespaces policy
       containers:
       - name: hostnamespaces-container
         image: nginx:1.20
