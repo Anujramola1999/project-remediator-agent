@@ -17,7 +17,7 @@ spec:
         valueFiles:
           - $values/remediator-agent/custom-values.yaml
     - repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
-      targetRevision: HEAD
+      targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
