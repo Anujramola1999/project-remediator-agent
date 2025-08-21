@@ -20,9 +20,8 @@ spec:
         image: nginx:1.20
         securityContext:
           capabilities:
-            add:
-            - SYS_ADMIN  # This violates disallow-capabilities policy
-            - NET_ADMIN
+            drop:
+            - ALL
         resources:
           requests:
             cpu: 100m
