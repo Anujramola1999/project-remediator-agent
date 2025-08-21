@@ -20,8 +20,6 @@ spec:
         image: nginx:1.20
         securityContext:
           capabilities:
-            drop:
-            - ALL
         resources:
           requests:
             cpu: 100m
