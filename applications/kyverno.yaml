@@ -19,7 +19,7 @@ spec:
           install: true
   destination:
     server: https://kubernetes.default.svc
-    namespace: nirmata
+    namespace: kyverno
   syncPolicy:
     automated:
       prune: true
