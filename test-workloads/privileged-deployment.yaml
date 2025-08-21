@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: privileged-test
-  namespace: default
   labels:
     app: privileged-test
     violation: disallow-privileged-containers

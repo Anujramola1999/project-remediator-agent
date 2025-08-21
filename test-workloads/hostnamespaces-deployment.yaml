@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hostnamespaces-test
-  namespace: default
   labels:
     app: hostnamespaces-test
     violation: disallow-host-namespaces

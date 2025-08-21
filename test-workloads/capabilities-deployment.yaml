@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: capabilities-test
-  namespace: default
   labels:
     app: capabilities-test
     violation: disallow-capabilities

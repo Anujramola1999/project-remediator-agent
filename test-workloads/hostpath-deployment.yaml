@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hostpath-test
-  namespace: default
   labels:
     app: hostpath-test
     violation: disallow-host-path
