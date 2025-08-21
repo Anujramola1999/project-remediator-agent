@@ -28,8 +28,8 @@ llm:
   enabled: true
   provider: bedrock  # Options: bedrock, azure-openai
   # For Bedrock
-  model: "anthropic.claude-sonnet-4-20250514-v1:0"
-  region: "us-west-1"
+  model: "us.anthropic.claude-sonnet-4-20250514-v1:0"
+  region: "us-west-2"
   # For Azure OpenAI
   endpoint: ""
   deploymentName: ""
