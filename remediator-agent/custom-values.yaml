@@ -28,8 +28,8 @@ llm:
   enabled: true
   provider: bedrock  # Options: bedrock, azure-openai
   # For Bedrock
-  model: "arn:aws:bedrock:us-west-2:844333597536:application-inference-profile/cpl55iltpz6n"
-  region: "us-west-2"
+  model: "arn:aws:bedrock:us-west-1:844333597536:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
+  region: "us-west-1"
   # For Azure OpenAI
   endpoint: ""
   deploymentName: ""
