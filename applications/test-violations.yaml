@@ -12,10 +12,10 @@ spec:
   source:
     repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
     path: test-workloads
-    targetRevision: HEAD
+    targetRevision: main
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: application
   syncPolicy:
     automated:
       prune: true
