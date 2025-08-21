@@ -13,10 +13,7 @@ spec:
     repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
     path: charts/kyverno
     targetRevision: HEAD
-    helm:
-      values: |
-        crds:
-          install: false
+
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
