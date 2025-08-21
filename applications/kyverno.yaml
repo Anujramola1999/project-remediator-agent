@@ -5,7 +5,7 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/name: n4k-kyverno
-    app.kubernetes.io/part-of: kyverno-platform
+    app.kubernetes.io/part-of: nirmata-platform
     environment: test
 spec:
   project: default
@@ -13,7 +13,6 @@ spec:
     repoURL: https://github.com/Anujramola1999/project-remediator-agent.git
     path: charts/kyverno
     targetRevision: HEAD
-
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
