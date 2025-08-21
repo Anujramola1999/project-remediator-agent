@@ -485,3 +485,108 @@ Log Analysis:
 - Panic at mapResourcesToFiles indicates RC version bug
 
 
+APPENDIX A: LLM MODEL SELECTION GUIDE
+=====================================
+
+This section explains how to select and configure any LLM model for the remediator agent from scratch.
+
+A.1 Discover Available LLMs
+----------------------------
+aws bedrock list-foundation-models --region us-west-2 --query 'modelSummaries[*].[modelId,modelName,providerName]' --output table --profile=devtest-sso
+
+This command shows all available foundation models including:
+- Anthropic Claude (best for reasoning, security analysis)
+- Amazon Nova (AWS native, good performance) 
+- Meta Llama (open source, general purpose)
+- OpenAI GPT (well known, good performance)
+- Mistral (European, privacy focused)
+
+A.2 Check Inference Profiles (High Availability)
+------------------------------------------------
+aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfileSummaries[*].[inferenceProfileId,inferenceProfileName,description]' --output table --profile=devtest-sso
+
+Inference profiles provide:
+- Multi-region routing (high availability)
+- Automatic failover between regions
+- Better performance and reliability
+- Recommended over direct foundation models
+
+A.3 Choose Your Model
+---------------------
+For policy remediation, recommended choices:
+
+Model                           | Use Case                    | Regions | Cost
+Claude Sonnet 4                | Best reasoning, security    | 3       | $$$
+Claude 3.5 Sonnet v2           | Great performance, lower    | 3       | $$
+Nova Premier                   | AWS native, good balance    | 3       | $$
+Claude 3.5 Haiku              | Fast, lightweight           | 3       | $
+
+Our Choice: us.anthropic.claude-sonnet-4-20250514-v1:0
+- Best reasoning for security policy analysis
+- Routes across 3 regions (us-east-1, us-east-2, us-west-2)
+- High availability through inference profile
+
+A.4 Get ARNs for Permissions
+-----------------------------
+aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfileSummaries[?inferenceProfileId==`us.anthropic.claude-sonnet-4-20250514-v1:0`]' --profile=devtest-sso
+
+This returns:
+1. Inference Profile ARN: Used in IAM policy
+   arn:aws:bedrock:us-west-2:844333597536:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0
+
+2. Foundation Model ARNs: Used in IAM policy (one per region)
+   arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0
+   arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0
+   arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0
+
+A.5 Create IAM Policy
+---------------------
+Create bedrock-policy.json with ALL ARNs from step A.4:
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:InvokeModel",
+                "bedrock:InvokeModelWithResponseStream"
+            ],
+            "Resource": [
+                "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0",
+                "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0",
+                "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0",
+                "arn:aws:bedrock:us-west-2:844333597536:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
+            ]
+        }
+    ]
+}
+
+Why multi-region permissions?
+- Inference profiles dynamically route between regions
+- If primary region is busy, routes to secondary regions  
+- You need permissions for ALL regions it might route to
+
+A.6 Configure Remediator Agent
+------------------------------
+Use the INFERENCE PROFILE ID (not ARN) in custom-values.yaml:
+
+llm:
+  enabled: true
+  provider: bedrock
+  model: "us.anthropic.claude-sonnet-4-20250514-v1:0"  # Inference Profile ID
+  region: "us-west-2"  # Primary region for inference profile
+
+Key Understanding:
+- Foundation Model ID: anthropic.claude-sonnet-4-20250514-v1:0 (single region)
+- Inference Profile ID: us.anthropic.claude-sonnet-4-20250514-v1:0 (multi-region)
+- Use Inference Profile ID for high availability
+
+A.7 Apply IAM Policy
+--------------------
+aws iam create-policy --policy-name RemediatorBedrockAccess --policy-document file://bedrock-policy.json --profile=devtest-sso
+aws iam attach-role-policy --role-name remediator-agent-role --policy-arn arn:aws:iam::ACCOUNT:policy/RemediatorBedrockAccess --profile=devtest-sso
+
+This process works for ANY Bedrock model - just replace the model IDs and ARNs accordingly.
+
+
