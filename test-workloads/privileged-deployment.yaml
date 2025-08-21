@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: privileged-test
+  namespace: default
+  labels:
+    app: privileged-test
+    violation: disallow-privileged-containers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: privileged-test
+  template:
+    metadata:
+      labels:
+        app: privileged-test
+    spec:
+      containers:
+      - name: privileged-container
+        image: nginx:1.20
+        securityContext:
+          privileged: true  # This violates disallow-privileged-containers policy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
