@@ -16,11 +16,7 @@ spec:
     helm:
       values: |
         crds:
-          install: true
-          groups:
-            kyverno:
-              policies: true
-              clusterpolicies: true
+          install: false
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
