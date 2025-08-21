@@ -30,6 +30,4 @@ spec:
             memory: 256Mi
       volumes:
       - name: host-volume
-        hostPath:  # This violates disallow-host-path policy
-          path: /var/lib
-          type: Directory
+        emptyDir: {}
