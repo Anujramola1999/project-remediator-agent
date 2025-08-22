@@ -20,7 +20,7 @@ spec:
         image: nginx:1.20
         securityContext:
           seccompProfile:
-            type: Unconfined  # This violates restrict-seccomp policy
+            type: RuntimeDefault
         resources:
           requests:
             cpu: 100m
