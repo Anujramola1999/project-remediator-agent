@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: privileged-test
+  namespace: application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: privileged-test
+  template:
+    metadata:
+      labels:
+        app: privileged-test
+    spec:
+      containers:
+      - name: test-container
+        image: nginx:latest
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 80
