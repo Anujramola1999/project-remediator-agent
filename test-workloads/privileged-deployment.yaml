@@ -19,7 +19,7 @@ spec:
       - name: privileged-container
         image: nginx:1.20
         securityContext:
-          privileged: true  # This violates disallow-privileged-containers policy
+          privileged: false
         resources:
           requests:
             cpu: 100m
