@@ -102,46 +102,24 @@ aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfile
 Note down the foundation model ARNs from all regions (usually us-east-1, us-east-2, us-west-2).
 
 3.3 Create IAM trust policy
-Create file simple-trust-policy.json:
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "pods.eks.amazonaws.com"
-      },
-      "Action": [
-        "sts:AssumeRole",
-        "sts:TagSession"
-      ]
-    }
-  ]
-}
+The IAM trust policy is already included in this repository at simple-trust-policy.json.
+
+This policy allows EKS Pod Identity to assume the IAM role for:
+- Kubernetes service accounts in the specified namespace  
+- AWS STS operations required for role assumption
 
 3.4 Create IAM role
 aws iam create-role --role-name remediator-agent-role --assume-role-policy-document file://simple-trust-policy.json --profile YOUR_PROFILE
 
 3.5 Create Bedrock access policy
-Create file bedrock-policy.json (replace with your actual ARNs from step 3.2):
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream"
-      ],
-      "Resource": [
-        "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0",
-        "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0", 
-        "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0",
-        "arn:aws:bedrock:us-west-2:YOUR_ACCOUNT_ID:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
-      ]
-    }
-  ]
-}
+A template Bedrock policy is included in this repository at bedrock-policy.json.
+
+This policy provides:
+- Access to invoke Bedrock models across multiple regions
+- Support for both foundation models and inference profiles
+- Permissions for streaming responses
+
+Important: Update the policy with your actual account ID and model ARNs from step 3.2 before applying.
 
 Apply the policy:
 aws iam put-role-policy --role-name remediator-agent-role --policy-name BedrockInvokePolicy --policy-document file://bedrock-policy.json --profile YOUR_PROFILE
@@ -167,7 +145,7 @@ kubectl create secret generic github-token --from-literal=token=YOUR_GITHUB_TOKE
 STEP 5: INSTALL KYVERNO AND REPORTS SERVER
 -------------------------------------------
 
-5.1 Install Kyverno using Helm
+5.1 Install Kyverno using Helm or you can install it using argocd as well.
 helm repo add kyverno https://kyverno.github.io/kyverno/
 helm repo update
 
@@ -195,92 +173,39 @@ STEP 6: CONFIGURE REMEDIATOR AGENT
 -----------------------------------
 
 6.1 Create remediator configuration
-Create file remediator-agent/custom-values.yaml:
+The custom-values.yaml file is already included in this repository at remediator-agent/custom-values.yaml.
 
-replicaCount: 1
+Key configuration points:
+- Uses Claude Sonnet 4 model via AWS Bedrock (us.anthropic.claude-sonnet-4-20250514-v1:0)
+- Targets only the test-violations ArgoCD application (to reduce GitHub API calls)
+- Runs every 5 minutes (change to hours after testing: "0 */6 * * *")
+- Creates GitHub PRs with intelligent titles and commit messages
+- Uses Pod Identity for AWS authentication (no secrets needed for AWS)
 
-image:
-  repository: ghcr.io/nirmata/go-agent-remediator
-  tag: "0.2.0-rc4"
-  pullPolicy: IfNotPresent
+To customize the configuration, edit the file:
+remediator-agent/custom-values.yaml
 
-serviceAccount:
-  create: true
-  name: "remediator-agent"
-
-resources:
-  limits:
-    memory: 1Gi
-  requests:
-    cpu: 200m
-    memory: 256Mi
-
-llm:
-  enabled: true
-  provider: bedrock
-  model: "us.anthropic.claude-sonnet-4-20250514-v1:0"
-  region: "us-west-2"
-
-tool:
-  enabled: true
-  name: github-tool
-  type: github
-  secretName: "github-token"
-  secretKey: "token"
-  defaults:
-    prBranchPrefix: "fix/policy-violation-"
-    prTitleTemplate: "fix: Policy violation remediation in {{.File}}"
-    commitMessageTemplate: "fix: Remediate {{.PolicyName}} policy violation in {{.File}}"
-
-remediator:
-  enabled: true
-  name: remediator-agent
-  environment:
-    localCluster: false
-    argoCD:
-      hub: true
-  target:
-    argoAppSelector:
-      allApps: false
-      names: 
-        - test-violations
-  remediation:
-    schedule: "*/5 * * * *"    # note: change remediation time to hours after testing
-    actions:
-      - type: CreateGithubPR
-        toolRefName: github-tool
+Important settings to verify:
+- llm.model: Should match your chosen Bedrock model
+- llm.region: Should match your AWS region
+- tool.secretName: Should match your GitHub secret name
+- remediator.target.argoAppSelector.names: Should include your target applications
+- remediation.schedule: Adjust frequency as needed
 
 6.2 Create ArgoCD application for remediator
-Create file applications/remediator-agent.yaml:
+The ArgoCD application specification is already included in this repository at applications/remediator-agent.yaml.
 
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: remediator-agent
-  namespace: argocd
-spec:
-  project: default
-  sources:
-    - repoURL: https://nirmata.github.io/kyverno-charts
-      chart: remediator-agent
-      targetRevision: 0.2.0-rc4
-      helm:
-        valueFiles:
-          - $values/remediator-agent/custom-values.yaml
-    - repoURL: https://github.com/YOUR_USERNAME/project-remediator-agent.git
-      targetRevision: main
-      ref: values
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: nirmata
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+Key points about this application:
+- Uses Helm chart from nirmata.github.io/kyverno-charts
+- References custom-values.yaml from this repository
+- Automatically syncs with prune and selfHeal enabled
+- Creates the nirmata namespace automatically
+- Has retry logic for failed syncs
 
-Replace YOUR_USERNAME with your GitHub username.
+To customize the application, edit the file:
+applications/remediator-agent.yaml
+
+Important: Update the GitHub repository URL to match your fork.
 
 git add remediator-agent/ applications/
 git commit -m "Add remediator agent configuration"
@@ -298,69 +223,33 @@ STEP 7: CREATE TEST VIOLATIONS
 -------------------------------
 
 7.1 Create test violation with clear documentation
-Create file test-workloads/privileged-deployment.yaml:
+The test violation deployment is already included in this repository at test-workloads/privileged-deployment.yaml.
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: privileged-test
-  namespace: application
-  annotations:
-    # POLICY VIOLATION: This deployment violates security policies
-    # ISSUE: Container runs with privileged=true which grants host-level access
-    # POLICY: Kyverno disallow-privileged-containers policy
-    # EXPECTED FIX: Set privileged=false or remove privileged flag
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: privileged-test
-  template:
-    metadata:
-      labels:
-        app: privileged-test
-    spec:
-      containers:
-      - name: test-container
-        image: nginx:latest
-        securityContext:
-          privileged: true  # VIOLATION: This should be false or removed
-        ports:
-        - containerPort: 80
+This deployment demonstrates:
+- Clear violation documentation in annotations
+- Specific policy that will be violated (disallow-privileged-containers)
+- Expected fix explanation for the LLM
+- Inline comments marking the actual violation
 
-7.2 Create ArgoCD application for test violations
-Create file applications/test-violations.yaml:
+The file includes detailed annotations explaining:
+- What policy is being violated
+- Why this is a security issue  
+- What the expected remediation should be
+- Clear marking of the violation line
 
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: test-violations
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/YOUR_USERNAME/project-remediator-agent.git
-    path: test-workloads
-    targetRevision: main
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: application
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-      allowEmpty: true
-    syncOptions:
-      - CreateNamespace=true
-      - Replace=true
-      - Force=true
-    retry:
-      limit: 10
-      backoff:
-        duration: 30s
-        maxDuration: 5m
+7.2 Create ArgoCD application for test violations  
+The test-violations application specification is already included in this repository at applications/test-violations.yaml.
 
-Replace YOUR_USERNAME with your GitHub username.
+Key configuration features:
+- Points to test-workloads directory in this repository
+- Uses aggressive sync options (Replace=true, Force=true) for clean testing
+- Allows empty applications for individual violation testing
+- Has enhanced retry logic (10 attempts, 5 minute max duration)
+- Creates application namespace automatically
+
+This application is specifically configured for testing with enhanced pruning capabilities to handle individual violation deployments cleanly.
+
+Important: Update the GitHub repository URL to match your fork.
 
 7.3 Deploy test violation
 git add test-workloads/ applications/test-violations.yaml
