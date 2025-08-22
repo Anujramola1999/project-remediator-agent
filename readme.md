@@ -124,7 +124,7 @@ aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfile
 Note down the foundation model ARNs from all regions (usually us-east-1, us-east-2, us-west-2).
 
 3.3 Create IAM trust policy
-The IAM trust policy is already included in this repository at simple-trust-policy.json.
+The IAM trust policy is already included in this repository at [simple-trust-policy.json](simple-trust-policy.json).
 
 This policy allows EKS Pod Identity to assume the IAM role for:
 - Kubernetes service accounts in the specified namespace  
@@ -136,7 +136,7 @@ aws iam create-role --role-name remediator-agent-role --assume-role-policy-docum
 ```
 
 3.5 Create Bedrock access policy
-A template Bedrock policy is included in this repository at bedrock-policy.json.
+A template Bedrock policy is included in this repository at [bedrock-policy.json](bedrock-policy.json).
 
 This policy provides:
 - Access to invoke Bedrock models across multiple regions
@@ -193,7 +193,7 @@ helm install n4k-kyverno kyverno/kyverno --namespace kyverno --create-namespace 
 ```
 
 **Option B: ArgoCD Application (GitOps)**
-The ArgoCD application specification is included at applications/kyverno.yaml.
+The ArgoCD application specification is included at [applications/kyverno.yaml](applications/kyverno.yaml).
 ```bash
 kubectl apply -f applications/kyverno.yaml
 ```
@@ -211,7 +211,7 @@ helm install reports-server nirmata/reports-server --namespace kyverno --set etc
 ```
 
 **Option B: ArgoCD Application (GitOps)**
-The ArgoCD application specification is included at applications/reports-server.yaml.
+The ArgoCD application specification is included at [applications/reports-server.yaml](applications/reports-server.yaml).
 ```bash
 kubectl apply -f applications/reports-server.yaml
 ```
@@ -238,7 +238,7 @@ STEP 6: CONFIGURE REMEDIATOR AGENT
 -----------------------------------
 
 6.1 Create remediator configuration
-The custom-values.yaml file is already included in this repository at remediator-agent/custom-values.yaml.
+The custom-values.yaml file is already included in this repository at [remediator-agent/custom-values.yaml](remediator-agent/custom-values.yaml).
 
 Key configuration points:
 - Uses Claude Sonnet 4 model via AWS Bedrock (us.anthropic.claude-sonnet-4-20250514-v1:0)
@@ -248,7 +248,7 @@ Key configuration points:
 - Uses Pod Identity for AWS authentication (no secrets needed for AWS)
 
 To customize the configuration, edit the file:
-remediator-agent/custom-values.yaml
+[remediator-agent/custom-values.yaml](remediator-agent/custom-values.yaml)
 
 Important settings to verify:
 - llm.model: Should match your chosen Bedrock model
@@ -258,7 +258,7 @@ Important settings to verify:
 - remediation.schedule: Adjust frequency as needed
 
 6.2 Create ArgoCD application for remediator
-The ArgoCD application specification is already included in this repository at applications/remediator-agent.yaml.
+The ArgoCD application specification is already included in this repository at [applications/remediator-agent.yaml](applications/remediator-agent.yaml).
 
 Key points about this application:
 - Uses Helm chart from nirmata.github.io/kyverno-charts
@@ -268,7 +268,7 @@ Key points about this application:
 - Has retry logic for failed syncs
 
 To customize the application, edit the file:
-applications/remediator-agent.yaml
+[applications/remediator-agent.yaml](applications/remediator-agent.yaml)
 
 Important: Update the GitHub repository URL to match your fork.
 
@@ -292,7 +292,7 @@ STEP 7: CREATE TEST VIOLATIONS
 -------------------------------
 
 7.1 Create test violation with clear documentation
-The test violation deployment is already included in this repository at test-workloads/privileged-deployment.yaml.
+The test violation deployment is already included in this repository at [test-workloads/privileged-deployment.yaml](test-workloads/privileged-deployment.yaml).
 
 This deployment demonstrates:
 - Clear violation documentation in annotations
@@ -307,7 +307,7 @@ The file includes detailed annotations explaining:
 - Clear marking of the violation line
 
 7.2 Create ArgoCD application for test violations  
-The test-violations application specification is already included in this repository at applications/test-violations.yaml.
+The test-violations application specification is already included in this repository at [applications/test-violations.yaml](applications/test-violations.yaml).
 
 Key configuration features:
 - Points to test-workloads directory in this repository
