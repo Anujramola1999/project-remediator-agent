@@ -1,7 +1,7 @@
-NIRMATA GO-AGENT-REMEDIATOR COMPLETE INSTALLATION GUIDE
+GO-AGENT-REMEDIATOR COMPLETE INSTALLATION GUIDE
 ======================================================
 
-This guide provides step-by-step instructions for installing and configuring the Nirmata go-agent-remediator system. The system automatically detects Kubernetes policy violations, analyzes them using AI, and creates GitHub pull requests with intelligent fixes.
+This guide provides step-by-step instructions for installing and configuring the go-agent-remediator system. The system automatically detects Kubernetes policy violations, analyzes them using AI, and creates GitHub pull requests with intelligent fixes.
 
 SYSTEM OVERVIEW
 ---------------
