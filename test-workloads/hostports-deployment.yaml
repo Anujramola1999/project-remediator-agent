@@ -23,4 +23,3 @@ spec:
         image: nginx:latest
         ports:
         - containerPort: 80
-          hostPort: 8080  # VIOLATION: hostPort bypasses network security
