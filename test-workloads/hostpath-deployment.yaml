@@ -17,15 +17,13 @@ spec:
     spec:
       volumes:
       - name: host-volume
-        hostPath:
-          path: /var/run/docker.sock  # This violates disallow-host-path policy
-          type: Socket
+        emptyDir: {}
       containers:
       - name: hostpath-container
         image: nginx:1.20
         volumeMounts:
         - name: host-volume
-          mountPath: /host/var/run/docker.sock
+          mountPath: /tmp/volume
         resources:
           requests:
             cpu: 100m
