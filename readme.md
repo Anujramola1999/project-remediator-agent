@@ -138,12 +138,24 @@ aws iam create-role --role-name remediator-agent-role --assume-role-policy-docum
 3.5 Create Bedrock access policy
 A template Bedrock policy is included in this repository at [bedrock-policy.json](bedrock-policy.json).
 
-This policy provides:
-- Access to invoke Bedrock models across multiple regions
+This policy template provides:
+- Access to invoke Bedrock models across multiple regions (us-east-1, us-east-2, us-west-2)
 - Support for both foundation models and inference profiles
 - Permissions for streaming responses
 
-Important: Update the policy with your actual account ID and model ARNs from step 3.2 before applying.
+IMPORTANT: Before using this policy, you must:
+1. Replace YOUR_ACCOUNT_ID with your actual AWS account ID
+2. Update model ARNs to match your chosen models from step 3.2
+3. Verify the inference profile ARN matches your selection
+
+Example customization:
+```bash
+# Get your account ID
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --profile YOUR_PROFILE --query 'Account' --output text)
+
+# Edit the policy file and replace YOUR_ACCOUNT_ID with the actual value
+sed -i "s/YOUR_ACCOUNT_ID/$AWS_ACCOUNT_ID/g" bedrock-policy.json
+```
 
 Apply the policy:
 ```bash
