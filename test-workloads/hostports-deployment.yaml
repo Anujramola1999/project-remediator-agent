@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostports-test
+  namespace: application
+  annotations:
+    # POLICY VIOLATION: This deployment violates security policies
+    # ISSUE: Uses hostPort which bypasses network policies
+    # POLICY: Kyverno disallow-host-ports policy
+    # EXPECTED FIX: Use ClusterIP/NodePort/LoadBalancer services instead
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hostports-test
+  template:
+    metadata:
+      labels:
+        app: hostports-test
+    spec:
+      containers:
+      - name: test-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+          hostPort: 8080  # VIOLATION: hostPort bypasses network security
