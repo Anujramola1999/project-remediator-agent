@@ -20,15 +20,18 @@ spec:
     automated:
       prune: true
       selfHeal: true
-      allowEmpty: false
+      allowEmpty: true
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
+      - Replace=true
+      - Force=true
     retry:
-      limit: 5
+      limit: 10
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 3m
+        maxDuration: 5m
+
   revisionHistoryLimit: 10
