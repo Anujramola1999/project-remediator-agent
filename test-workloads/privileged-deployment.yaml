@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: privileged-test
   namespace: application
+  annotations:
+    # POLICY VIOLATION: This deployment violates security policies
+    # ISSUE: Container runs with privileged=true which grants host-level access
+    # POLICY: Kyverno disallow-privileged-containers policy
+    # EXPECTED FIX: Set privileged=false or remove privileged flag
 spec:
   replicas: 1
   selector:
@@ -17,6 +22,6 @@ spec:
       - name: test-container
         image: nginx:latest
         securityContext:
-          privileged: true
+          privileged: true  # VIOLATION: This should be false or removed
         ports:
         - containerPort: 80
