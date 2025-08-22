@@ -21,8 +21,6 @@ spec:
         securityContext:
           capabilities:
             add:
-            - SYS_ADMIN  # This violates disallow-capabilities policy
-            - NET_ADMIN
         resources:
           requests:
             cpu: 100m
