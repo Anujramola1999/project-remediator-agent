@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runasroot-test
+  namespace: application
+  labels:
+    app: runasroot-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runasroot-test
+  template:
+    metadata:
+      labels:
+        app: runasroot-test
+    spec:
+      containers:
+      - name: runasroot-container
+        image: nginx:1.20
+        securityContext:
+          runAsUser: 0  # This violates disallow-running-as-root policy
+          runAsGroup: 0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        ports:
+        - containerPort: 80
