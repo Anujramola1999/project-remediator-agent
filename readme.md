@@ -36,19 +36,25 @@ STEP 1: CLUSTER PREPARATION
 
 1.1 Verify cluster access
 Run this command to ensure you can access your cluster:
+```bash
 kubectl get nodes
+```
 
 You should see 3 or more nodes in Ready status.
 
 1.2 Install EKS Pod Identity Add-on
 The remediator needs to access AWS Bedrock using Pod Identity. Install the add-on:
 
+```bash
 aws eks create-addon --cluster-name YOUR_CLUSTER_NAME --addon-name eks-pod-identity-agent --resolve-conflicts OVERWRITE --profile YOUR_PROFILE --region YOUR_REGION
+```
 
 Replace YOUR_CLUSTER_NAME, YOUR_PROFILE, and YOUR_REGION with your actual values.
 
 Wait 2-3 minutes for the add-on to install, then verify:
+```bash
 kubectl get pods -n kube-system | grep pod-identity
+```
 
 You should see pod-identity-agent pods running on each node.
 
@@ -56,32 +62,44 @@ Optional:
 1.3 Optimize ArgoCD for fast syncing
 By default, ArgoCD syncs every 3-5 minutes. We will configure it for 30-second syncing:
 
+```bash
 kubectl patch configmap argocd-cm -n argocd --patch='{"data":{"timeout.reconciliation":"30s","timeout.hard.reconciliation":"30s","application.resync":"30s","server.repo.server.timeout.seconds":"60"}}'
 
 kubectl patch configmap argocd-cmd-params-cm -n argocd --patch='{"data":{"application.sync.retry.duration":"30s","reposerver.parallelism.limit":"10"}}'
+```
 
 Restart ArgoCD components to apply changes:
+```bash
 kubectl rollout restart deployment/argocd-repo-server -n argocd
 kubectl rollout restart deployment/argocd-server -n argocd  
 kubectl rollout restart statefulset/argocd-application-controller -n argocd
+```
 
 STEP 2: GITHUB REPOSITORY SETUP
 --------------------------------
 
 2.1 Create your GitOps repository
 Create a new GitHub repository for this project:
+```bash
 gh repo create project-remediator-agent --public
+```
 
 Clone it locally:
+```bash
 git clone https://github.com/YOUR_USERNAME/project-remediator-agent.git
 cd project-remediator-agent
+```
 
 2.2 Create directory structure
+```bash
 mkdir -p remediator-agent applications test-workloads
+```
 
 2.3 Create GitHub access token
 Generate a GitHub token with repo permissions:
+```bash
 gh auth token
+```
 
 Copy this token - you will need it later for Kubernetes secret.
 
@@ -90,14 +108,18 @@ STEP 3: AWS BEDROCK AND IAM SETUP
 
 3.1 Choose your LLM model
 List available models in your region:
+```bash
 aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfileSummaries[*].[inferenceProfileId,inferenceProfileName]' --output table --profile YOUR_PROFILE
+```
 
 For this guide, we recommend: us.anthropic.claude-sonnet-4-20250514-v1:0
 This provides excellent reasoning for security policy analysis.
 
 3.2 Get model ARNs for permissions
 Get the inference profile details:
+```bash
 aws bedrock list-inference-profiles --region us-west-2 --query 'inferenceProfileSummaries[?inferenceProfileId==`us.anthropic.claude-sonnet-4-20250514-v1:0`]' --profile YOUR_PROFILE
+```
 
 Note down the foundation model ARNs from all regions (usually us-east-1, us-east-2, us-west-2).
 
@@ -109,7 +131,9 @@ This policy allows EKS Pod Identity to assume the IAM role for:
 - AWS STS operations required for role assumption
 
 3.4 Create IAM role
+```bash
 aws iam create-role --role-name remediator-agent-role --assume-role-policy-document file://simple-trust-policy.json --profile YOUR_PROFILE
+```
 
 3.5 Create Bedrock access policy
 A template Bedrock policy is included in this repository at bedrock-policy.json.
@@ -122,50 +146,91 @@ This policy provides:
 Important: Update the policy with your actual account ID and model ARNs from step 3.2 before applying.
 
 Apply the policy:
+```bash
 aws iam put-role-policy --role-name remediator-agent-role --policy-name BedrockInvokePolicy --policy-document file://bedrock-policy.json --profile YOUR_PROFILE
+```
 
 3.6 Create Pod Identity association
 Get your account ID first:
+```bash
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --profile YOUR_PROFILE --query 'Account' --output text)
+```
 
 Create the association:
+```bash
 aws eks create-pod-identity-association --cluster-name YOUR_CLUSTER_NAME --role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/remediator-agent-role --namespace nirmata --service-account remediator-agent --profile YOUR_PROFILE --region YOUR_REGION
+```
 
 STEP 4: KUBERNETES SECRETS SETUP
 ---------------------------------
 
 4.1 Create namespaces
+```bash
 kubectl create namespace nirmata
 kubectl create namespace kyverno
+```
 
 4.2 Create GitHub secret
 Use the token from step 2.3:
+```bash
 kubectl create secret generic github-token --from-literal=token=YOUR_GITHUB_TOKEN --namespace nirmata
+```
 
 STEP 5: INSTALL KYVERNO AND REPORTS SERVER
 -------------------------------------------
 
-5.1 Install Kyverno using Helm or you can install it using argocd as well.
+5.1 Install Kyverno using Helm or ArgoCD
+
+**Option A: Direct Helm Installation**
+```bash
 helm repo add kyverno https://kyverno.github.io/kyverno/
 helm repo update
 
-helm install n4k-kyverno kyverno/kyverno --namespace kyverno --create-namespace --set features.admissionReports.enabled=true --set features.backgroundReports.enabled=true --set features.policyReports.enabled=true
+helm install n4k-kyverno kyverno/kyverno --namespace kyverno --create-namespace \
+  --set features.admissionReports.enabled=true \
+  --set features.backgroundReports.enabled=true \
+  --set features.policyReports.enabled=true
+```
 
-5.2 Install Reports Server using Helm
+**Option B: ArgoCD Application (GitOps)**
+The ArgoCD application specification is included at applications/kyverno.yaml.
+```bash
+kubectl apply -f applications/kyverno.yaml
+```
+
+Note: ArgoCD option requires Helm charts to be available in your repository under charts/kyverno directory.
+
+5.2 Install Reports Server using Helm or ArgoCD
+
+**Option A: Direct Helm Installation**
+```bash
 helm repo add nirmata https://nirmata.github.io/kyverno-charts
 helm repo update
 
 helm install reports-server nirmata/reports-server --namespace kyverno --set etcd.enabled=true
+```
+
+**Option B: ArgoCD Application (GitOps)**
+The ArgoCD application specification is included at applications/reports-server.yaml.
+```bash
+kubectl apply -f applications/reports-server.yaml
+```
+
+Note: ArgoCD option requires Helm charts to be available in your repository under charts/reports-server directory.
 
 5.3 Install baseline policies using Kustomize
 Clone the policies repository and apply baseline policies:
+```bash
 git clone https://github.com/kyverno/policies.git kyverno-policies
 kubectl apply -k kyverno-policies/pod-security/baseline/
+```
 
 5.4 Verify installation
 Wait 2-3 minutes then check:
+```bash
 kubectl get pods -n kyverno
 kubectl get cpol
+```
 
 All pods should be Running and all policies should show ADMISSION=true, BACKGROUND=true.
 
@@ -207,15 +272,19 @@ applications/remediator-agent.yaml
 
 Important: Update the GitHub repository URL to match your fork.
 
+```bash
 git add remediator-agent/ applications/
 git commit -m "Add remediator agent configuration"
 git push
 
 kubectl apply -f applications/remediator-agent.yaml
+```
 
 6.4 Verify remediator deployment
+```bash
 kubectl get pods -n nirmata
 kubectl logs -n nirmata deployment/remediator-agent --tail=50
+```
 
 The log should show successful startup and ArgoCD discovery.
 
@@ -252,32 +321,42 @@ This application is specifically configured for testing with enhanced pruning ca
 Important: Update the GitHub repository URL to match your fork.
 
 7.3 Deploy test violation
+```bash
 git add test-workloads/ applications/test-violations.yaml
 git commit -m "Add test violation deployment"
 git push
 
 kubectl apply -f applications/test-violations.yaml
+```
 
 STEP 8: VERIFICATION AND TESTING
 ---------------------------------
 
 8.1 Watch ArgoCD sync (should happen in 30 seconds)
+```bash
 kubectl get applications -n argocd -w
+```
 
 Wait for test-violations to show Synced status.
 
 8.2 Verify violation deployment
+```bash
 kubectl get pods -n application
 kubectl get deployments -n application
+```
 
 8.3 Check policy violation detection
+```bash
 kubectl get policyreports -n application
 kubectl get policyreports -n application -o yaml
+```
 
 You should see a policy report showing the privileged container violation.
 
 8.4 Monitor remediator logs
+```bash
 kubectl logs -n nirmata deployment/remediator-agent --tail=50 -f
+```
 
 Look for messages like:
 - "Final selected applications: 1"
@@ -287,7 +366,9 @@ Look for messages like:
 
 8.5 Check for GitHub PR creation
 Within 2-5 minutes, check for pull requests:
+```bash
 gh pr list --repo YOUR_USERNAME/project-remediator-agent
+```
 
 You should see a new PR with an intelligent fix for the privileged container violation.
 
