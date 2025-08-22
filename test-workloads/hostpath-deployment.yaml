@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostpath-test
+  namespace: application
+  labels:
+    app: hostpath-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hostpath-test
+  template:
+    metadata:
+      labels:
+        app: hostpath-test
+    spec:
+      volumes:
+      - name: host-volume
+        hostPath:
+          path: /var/run/docker.sock  # This violates disallow-host-path policy
+          type: Socket
+      containers:
+      - name: hostpath-container
+        image: nginx:1.20
+        volumeMounts:
+        - name: host-volume
+          mountPath: /host/var/run/docker.sock
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        ports:
+        - containerPort: 80
