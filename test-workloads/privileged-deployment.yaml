@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: privileged-test
   namespace: application
-  labels:
-    app: privileged-test
 spec:
   replicas: 1
   selector:
@@ -16,16 +14,9 @@ spec:
         app: privileged-test
     spec:
       containers:
-      - name: privileged-container
-        image: nginx:1.20
+      - name: test-container
+        image: nginx:latest
         securityContext:
           privileged: false
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
         ports:
         - containerPort: 80
