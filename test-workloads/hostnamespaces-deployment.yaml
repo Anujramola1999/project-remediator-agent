@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostnamespaces-test
+  namespace: application
+  labels:
+    app: hostnamespaces-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hostnamespaces-test
+  template:
+    metadata:
+      labels:
+        app: hostnamespaces-test
+    spec:
+      hostNetwork: true  # This violates disallow-host-namespaces policy
+      hostPID: true      # This also violates disallow-host-namespaces policy
+      hostIPC: true      # This also violates disallow-host-namespaces policy
+      containers:
+      - name: hostnamespaces-container
+        image: nginx:1.20
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        ports:
+        - containerPort: 80
