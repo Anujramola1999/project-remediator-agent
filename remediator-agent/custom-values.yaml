@@ -70,7 +70,7 @@ remediator:
       names:
         - test-violations
   remediation:
-    schedule: "*/5 * * * *"
+    schedule: "0 */6 * * *"
     actions:
       - type: CreateGithubPR
         toolRefName: github-tool
